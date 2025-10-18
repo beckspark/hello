@@ -5,10 +5,10 @@ use std::{
 
 pub struct ThreadPool{
     workers: Vec<Worker>,
-    mpsc::Sender<Job>,
+    sender: mpsc::Sender<Job>,
 }
 
-struct Job;
+type Job = Box<dyn FnOnce() + Send + 'static>;
 
 impl ThreadPool {
     /// Create a new ThreadPool.
@@ -32,6 +32,7 @@ impl ThreadPool {
         }
 
         ThreadPool { workers, sender }
+    }
 }
 
 struct Worker {
@@ -52,8 +53,10 @@ impl Worker {
     }
 }
 
-    pub fn execute<F>(&self, f: F)
-    where
-        F: FnOnce() + Send + 'static,
-    {}
+pub fn execute<F>(&self, f: F)
+where
+    F: FnOnce() + Send + 'static,
+{
+        let job = Box::new(F);
+        self.sender.send(job).unwrap();
 }
